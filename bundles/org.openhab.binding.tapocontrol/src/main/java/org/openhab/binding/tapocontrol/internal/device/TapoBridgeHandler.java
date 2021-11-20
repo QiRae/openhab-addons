@@ -20,8 +20,9 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.HttpClient;
-import org.openhab.binding.tapocontrol.internal.TapoDiscoveryService;
+import org.jupnp.UpnpService;
 import org.openhab.binding.tapocontrol.internal.api.TapoCloudConnector;
+import org.openhab.binding.tapocontrol.internal.discovery.TapoDiscoveryService;
 import org.openhab.binding.tapocontrol.internal.helpers.TapoCredentials;
 import org.openhab.binding.tapocontrol.internal.helpers.TapoErrorHandler;
 import org.openhab.binding.tapocontrol.internal.structures.TapoBridgeConfiguration;
@@ -34,6 +35,7 @@ import org.openhab.core.thing.ThingUID;
 import org.openhab.core.thing.binding.BaseBridgeHandler;
 import org.openhab.core.thing.binding.ThingHandlerService;
 import org.openhab.core.types.Command;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +53,7 @@ public class TapoBridgeHandler extends BaseBridgeHandler {
     private final TapoErrorHandler bridgeError = new TapoErrorHandler();
     private final TapoBridgeConfiguration config;
     private final HttpClient httpClient;
+    private @Nullable UpnpService upnpService;
     private @Nullable ScheduledFuture<?> startupJob;
     private @Nullable ScheduledFuture<?> pollingJob;
     private @Nullable ScheduledFuture<?> discoveryJob;
@@ -60,7 +63,7 @@ public class TapoBridgeHandler extends BaseBridgeHandler {
 
     private String uid;
 
-    public TapoBridgeHandler(Bridge bridge, HttpClient httpClient) {
+    public TapoBridgeHandler(Bridge bridge, HttpClient httpClient, @Nullable UpnpService upnpService) {
         super(bridge);
         Thing thing = getThing();
         this.cloudConnector = new TapoCloudConnector(this, httpClient);
@@ -68,6 +71,7 @@ public class TapoBridgeHandler extends BaseBridgeHandler {
         this.credentials = new TapoCredentials();
         this.uid = thing.getUID().toString();
         this.httpClient = httpClient;
+        this.upnpService = upnpService;
     }
 
     /***********************************
@@ -162,7 +166,7 @@ public class TapoBridgeHandler extends BaseBridgeHandler {
      */
     protected void startDiscoveryScheduler() {
         Integer pollingInterval = config.discoveryIntervalM;
-        if (config.cloudDiscoveryEnabled && pollingInterval > 0) {
+        if ((config.cloudDiscoveryEnabled || config.udpDiscoveryEnabled) && pollingInterval > 0) {
             logger.trace("{} starting bridge discovery sheduler", this.uid);
 
             this.discoveryJob = scheduler.scheduleWithFixedDelay(this::discoverDevices, 0, pollingInterval,
@@ -244,7 +248,9 @@ public class TapoBridgeHandler extends BaseBridgeHandler {
      * START DEVICE DISCOVERY
      */
     public void discoverDevices() {
-        this.discoveryService.startScan();
+        if (config.cloudDiscoveryEnabled || config.udpDiscoveryEnabled) {
+            this.discoveryService.startScan();
+        }
     }
 
     /**
@@ -291,11 +297,21 @@ public class TapoBridgeHandler extends BaseBridgeHandler {
         return this.httpClient;
     }
 
+    @Nullable
+    public UpnpService getUpnpService() {
+        return this.upnpService;
+    }
+
     public ThingUID getUID() {
         return getThing().getUID();
     }
 
     public TapoBridgeConfiguration getBridgeConfig() {
         return this.config;
+    }
+
+    @Reference
+    protected void setUpnpService(UpnpService upnpService) {
+        this.upnpService = upnpService;
     }
 }

@@ -34,6 +34,7 @@ public final class TapoBridgeConfiguration {
     public static final String CONFIG_DEVICE_IP = "ipAddress";
     public static final String CONFIG_UPDATE_INTERVAL = "pollingInterval";
     public static final String CONFIG_DISCOVERY_CLOUD = "cloudDiscovery";
+    public static final String CONFIG_DISCOVERY_UDP = "udpDiscovery";
     public static final String CONFIG_DISCOVERY_INTERVAL = "discoveryInterval";
 
     /* DEFAULT & FIXED CONFIGURATIONS */
@@ -68,6 +69,7 @@ public final class TapoBridgeConfiguration {
             username = config.get(CONFIG_EMAIL).toString();
             password = config.get(CONFIG_PASS).toString();
             cloudDiscoveryEnabled = Boolean.parseBoolean(config.get(CONFIG_DISCOVERY_CLOUD).toString());
+            udpDiscoveryEnabled = Boolean.parseBoolean(config.get(CONFIG_DISCOVERY_UDP).toString());
             discoveryIntervalM = Integer.valueOf(config.get(CONFIG_DISCOVERY_INTERVAL).toString());
         } catch (Exception e) {
             logger.warn("{} error reading configuration: '{}'", bridge.getUID(), e.getMessage());

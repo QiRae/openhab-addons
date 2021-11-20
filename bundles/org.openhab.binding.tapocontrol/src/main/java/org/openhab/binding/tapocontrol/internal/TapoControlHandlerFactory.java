@@ -22,6 +22,7 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.jupnp.UpnpService;
 import org.openhab.binding.tapocontrol.internal.device.TapoBridgeHandler;
 import org.openhab.binding.tapocontrol.internal.device.TapoLightStrip;
 import org.openhab.binding.tapocontrol.internal.device.TapoSmartBulb;
@@ -37,6 +38,7 @@ import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +54,7 @@ public class TapoControlHandlerFactory extends BaseThingHandlerFactory {
     private final Logger logger = LoggerFactory.getLogger(TapoControlHandlerFactory.class);
     private final Set<TapoBridgeHandler> accountHandlers = new HashSet<>();
     private final HttpClient httpClient;
+    protected @Nullable UpnpService upnpService;
 
     @Activate
     public TapoControlHandlerFactory() {
@@ -97,7 +100,7 @@ public class TapoControlHandlerFactory extends BaseThingHandlerFactory {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
 
         if (SUPPORTED_BRIDGE_UIDS.contains(thingTypeUID)) {
-            TapoBridgeHandler bridgeHandler = new TapoBridgeHandler((Bridge) thing, httpClient);
+            TapoBridgeHandler bridgeHandler = new TapoBridgeHandler((Bridge) thing, httpClient, upnpService);
             accountHandlers.add(bridgeHandler);
             return bridgeHandler;
         } else if (SUPPORTED_SMART_PLUG_UIDS.contains(thingTypeUID)) {
@@ -112,5 +115,10 @@ public class TapoControlHandlerFactory extends BaseThingHandlerFactory {
             return new TapoUniversalDevice(thing);
         }
         return null;
+    }
+
+    @Reference
+    protected void setUpnpService(UpnpService upnpService) {
+        this.upnpService = upnpService;
     }
 }
